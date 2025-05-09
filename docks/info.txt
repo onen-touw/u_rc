@@ -1,0 +1,3 @@
+http://www.lcdwiki.com/3.2inch_SPI_Module_ILI9341_SKU:MSP3218 - display pinoput
+https://randomnerdtutorials.com/esp32-tft-touchscreen-display-2-8-ili9341-arduino/#config-file-windows-pc
+	- display connection and simple code
