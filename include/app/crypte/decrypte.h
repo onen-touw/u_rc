@@ -1,12 +1,11 @@
 #pragma once
 
 #include "crtypes.h"
-#include "cmds.h"
 #include "crthelp.h"
 
 namespace crt {
 
-
+	template <typename cmd_t, std::enable_if_t<std::is_enum_v<cmd_t> && sizeof(cmd_t) == sizeof(char), bool> = true> 
 	class decrypte_t
 	{
 	public:
@@ -22,14 +21,14 @@ namespace crt {
 		static void unpack(uint8_t* buf, uint8_t sz, handle_t handle) {
 			if (sz < cfg::it_data)
 			{
-                // std::cout << "error\n";
-				ufo::Trace_t::log("inc sz error\n");
+				// ufo::Trace_t::log("inc sz error\n");
+				printf("inc sz error\n");
 				return;
 			}
 			if (sz != buf[cfg::it_sz])
 			{
-                // std::cout << "error: bad_packet\n";
-				ufo::Trace_t::log("error: bad_packet\n");
+				// ufo::Trace_t::log("error: bad_packet\n");
+				printf("error: bad_packet\n");
 				return;
 			}
 
@@ -62,13 +61,13 @@ namespace crt {
 			}
 			else if (buf[cfg::it_in] == '!')
 			{
-                // std::cout << "error: !not implemented\n";
-				ufo::Trace_t::log("error: !not implemented\n");
+				// ufo::Trace_t::log("error: !not implemented\n");
+				printf("error: !not implemented\n");
 			}
 			else
 			{
-                // std::cout << "error: bad_packet\n";
-				ufo::Trace_t::log("error: bad_packet\n");
+				// ufo::Trace_t::log("error: bad_packet\n");
+				printf("error: bad_packet\n");
 			}
 		}
 
@@ -110,5 +109,4 @@ namespace crt {
 			// std::cout << "crc: " << static_cast<int>(_buf[sz - 1ull]) << '\n';
 		}
 	};
-
 }
