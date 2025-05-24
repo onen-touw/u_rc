@@ -1,8 +1,7 @@
 #pragma once 
 
-
-
 #include "apptypes.h"
+#include "u_sys/btflg.h"
 
 namespace app
 {
@@ -11,7 +10,10 @@ namespace app
         public:
             // types::remote_data_t _remote = {};
             types::gimb_data_t _gimb = {};
-
+            ufo::bit_flag_t<uint16_t> _tumb = {};
+            
+            types::event_t _event = {};
+            types::app_cmd_queue_t _queue = {};
         private:
             app_data_t(){}
 

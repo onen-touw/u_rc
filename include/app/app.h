@@ -25,23 +25,16 @@
 #include "appdata.h"
 #include "display.h"
 
-// #define use_wf_driver
-// #define use_net
-// #define use_sens
-// #define use_uart
-// #define use_lora
-
-
 namespace app
 {
     class app_t
     {
     private:
+		ufo::net::fsk_base::callback_t _net_cb = nullptr;
+
     public:
 
-        app_t() {
-          
-        }
+        app_t() {}
         ~app_t() {}
 
         void task(ufo::token_t token){
@@ -49,68 +42,85 @@ namespace app
 			Trace_t::log("app task start\n");
 
 			app_data_t &appd = app_data_t::get_instanse();
-
-			net_t nett;
-			nett.mk_sock(
-				net_descriptors_t::sock_main,
-				"192.168.0.68",
-				net::uSocketType_t::UFO_SOCK_SERVER,
-				[](net::fast_sock::rcv_t *rcv)
-				{
-					// Trace_t::flog("rcv[%u] (%u): %s\n", ufo::utl::get_time_millis(),rcv->_len, rcv->_payload);
-
-					/* crt::decrypte_t::unpack(
-						reinterpret_cast<uint8_t *>(rcv->_payload),
-						rcv->_len,
-						[](cmd_t cmd, uint8_t *buf)
-						{
-							//  app_data_t &appd = app_data_t::get_instanse();
-
-							//  if (cmd == cmd_t::remote_trpy)
-							//  {
-							// 	 ufo::lock_guard<mutex_t> _l(appd._remote._lock);
-
-							// 	 appd._remote._throt = crt::get_arg<float>(0, buf);
-							// 	 appd._remote._roll = crt::get_arg<float>(1, buf);
-							// 	 appd._remote._pitch = crt::get_arg<float>(2, buf);
-							// 	 appd._remote._yaw = crt::get_arg<float>(3, buf);
-							// 	 appd._remote._mcmd = udt::types::mot_cmd_t::mot_vals;
-							//  }
-							//  else if (cmd == cmd_t::remote_arm)
-							//  {
-							// 	 ufo::lock_guard<mutex_t> _l(appd._remote._lock);
-							// 	 if (crt::get_arg<int32_t>(0, buf) > 0)
-							// 	 {
-							// 		 appd._remote._mcmd = udt::types::mot_cmd_t::mot_set_arm;
-							// 	 }
-							// 	 else
-							// 	 {
-							// 		 appd._remote._mcmd = udt::types::mot_cmd_t::mot_set_disarm;
-							// 	 }
-							//  }
-						}); */
-				},
-				"192.168.0.68");
-			net_t::msg_block_t msg_block = nett.get_block(net_descriptors_t::sock_main);
-
-			ufo::thread_cfg cfg_net;
-			cfg_net._name = "net";
-			cfg_net._core = 0;
-			cfg_net._prio = 5;
-			cfg_net._stackSize = 4096;
-			ufo::thread_guard task_net(ufo::thread(cfg_net, &net_t::task, &nett));
+			sys_data_t& msys = sys_data_t::get_instanse();
+			
+			app::types::event_t event = {};
+			
 
 			ufo::thread_cfg cfg_gimb;
-			cfg_gimb._name = "gimb";
+			cfg_gimb._name = "gmb";
 			cfg_gimb._core = 0;
 			cfg_gimb._prio = 5;
 			cfg_gimb._stackSize = 4096;
 			gimball4_t gimb4;
 			ufo::thread_guard task_gimb(ufo::thread(cfg_gimb, &gimball4_t::task, &gimb4));
 
-			// ufo::sys_data_t& _sys = ufo::sys_data_t::get_instanse();
-			// display_t display (_sys._drv._spi2.get());
+			ufo::thread_cfg cfg_io;
+			cfg_io._name = "io";
+			cfg_io._core = 0;
+			cfg_io._prio = 5;
+			cfg_io._stackSize = 4096;
+			ufo::thread_guard task_io(ufo::thread(cfg_io, 
+				[](ufo::token_t token){
+				
+					pcf8575_t ioe(sys_data_t::get_instanse()._drv._i2c.get(), 0x22);
+					app_data_t &appd = app_data_t::get_instanse();
+
+					while (token)
+					{
+						ioe.Update();
+						appd._tumb = ioe.Get();
+						printf("state: %u\n", appd._tumb.get());
+						ufo::utl::sleep_for(75);
+					}
+				}
+			));
+
+
+
+			nettt_t nettt;
+			nettt_t::desc_t sock = 0;
+			nettt_t::msg_block_t sock_msg = nettt.mk(
+				sock,	
+				std::make_unique<nettt_t::sock_t>(
+					"192.168.0.68", 
+					nettt_t::sock_t::sockt_t::client, 
+					net_callback)
+				);
+
+			// nettt_t::desc_t lrr = 0;
+			// nettt.mk(lrr, std::make_unique<nettt_t::lora_t>(msys._drv._uart1.get(), net_callback));
+			// printf("sd %u, ld %u\n", sock, lrr);
+
+			// lora llora(msys._drv._uart1.get());
+			// UFO_LoraSettings conf = {};
+			// conf._selfAddr._addh = 0;
+			// conf._selfAddr._addl = 2;
+			// conf._selfAddr._chan = 10;
+			// conf._targAddr._addh = UFO_LORA_BROADCAST;
+			// conf._targAddr._addl = UFO_LORA_BROADCAST;
+			// conf._targAddr._chan = 8;
+			// conf.adrt =  LORA_AIR_DATA_RATE_110_384;
+			// llora.SetConfig(conf, [](lora::rcv_t* cll){
+			// 	printf("rcv on RC from ROVER: %s\n", cll->_payload);
+			// });
+			// llora.Setup();
+			// lora::msg_block_t lora_msg = llora.get_block();
+			// ufo::thread_cfg cfg_lora;
+			// cfg_lora._name = "lora";
+			// cfg_lora._core = 1;
+			// cfg_lora._prio = 5;
+			// cfg_lora._stackSize = 4096;
+			// ufo::thread_guard task_lora(ufo::thread(cfg_lora, [](lora* lr, token_t token){
+			// 	while (token)
+			// 	{
+			// 		lr->Iteration();
+			// 	}
+			// }, &llora));
 #pragma region //display
+			
+						// ufo::sys_data_t& _sys = ufo::sys_data_t::get_instanse();
+						// display_t display (_sys._drv._spi2.get());
 			// {
 			// 	printf("Performing SPIFFS_check().\n");
 			// 	ret = esp_spiffs_check(conf.partition_label);
@@ -160,34 +170,178 @@ namespace app
             
 #pragma endregion 
 
-			crt::encrypte_t encripter;
+			crt::encrypte_t<remote_cmd_e> encripter;
+
+			event._app.set(app_event_e::idle);
+			msys._cns.unlock();
+
+			using qcmd_t = types::app_cmd_queue_t::cmd_t; 
+			qcmd_t cmd = qcmd_t::null;
 
             while (token)
             {
+				// lora_msg->Msg(3, "cntRV:228\n",11);
+				// sock_msg->fMsg("hello %lu", ufo::utl::get_time_millis());
+				if (event._app == app_event_e::control)
 				{
-					ufo::lock_guard<ufo::mutex_t> lock(appd._gimb._lock);
-					if (appd._gimb._ready)
+					if (xQueueReceive(appd._queue._q, &cmd, 30))
 					{
-						appd._gimb._ready = false;
-						encripter.pack(cmd_t::remote_trpy,
-									   appd._gimb._throt,
-									   appd._gimb._roll,
-									   appd._gimb._pitch,
-									   appd._gimb._yaw);
+						if (cmd == qcmd_t::disarm)
+						{
+							encripter.pack(remote_cmd_e::arm, uint8_t(0u));
+							msys._cns.unlock();
+						}
+						else if (cmd == qcmd_t::req_ask)
+						{
+							encripter.pack(remote_cmd_e::ask, ufo::utl::get_time_millis());
+						}
+						continue;
+					}
+
+					// check connection (sometimes)
+					{
+						ufo::lock_guard<ufo::mutex_t> lock(appd._gimb._lock);
+						if (appd._gimb._ready)
+						{
+							appd._gimb._ready = false;
+							encripter.pack(remote_cmd_e::trpy,
+										   appd._gimb._throt,
+										   appd._gimb._roll,
+										   appd._gimb._pitch,
+										   appd._gimb._yaw);
+						}
+					}
+
+
+				}
+				else if (event._app == app_event_e::idle)
+				{
+					if (xQueueReceive(appd._queue._q, &cmd, 30))
+					{
+						if (cmd == qcmd_t::arm)					// set from btns
+						{
+							event._app.set(app_event_e::control);
+							msys._cns.block();
+						}
+						else if (cmd == qcmd_t::find_on)			// set from btns
+						{
+							event._app.set(app_event_e::alarm);
+							event._alarm.set(app_event_alarm_e::find_mode);
+						}
+						else {
+							printf("no such cmd");
+							event._app.set(app_event_e::alarm);
+							event._alarm.set(app_event_alarm_e::warning);							
+						}
+					}
+					// check connection
+
+					// printf("hello after rcv\n");
+
+				}
+				else if (event._app == app_event_e::alarm)
+				{
+					if (event._alarm.get() == app_event_alarm_e::disconn)
+					{
+						// bip-bip-bip
+						event._app.back();
+					}
+					else if (event._alarm.get() == app_event_alarm_e::find_mode)
+					{
+						while (true)
+						{
+							// bip-bip
+							if (xQueueReceive(appd._queue._q, &cmd, 50))
+							{
+								if (cmd == qcmd_t::find_off)
+								{
+									break;
+									event._app.back();
+								}
+							}
+						}
+					}
+					else if (event._alarm.get() == app_event_alarm_e::warning){
+						// bp
+						event._app.back();
+					}
+					else if (event._alarm.get() == app_event_alarm_e::battery)
+					{
+						// bip
+						event._app.back();
+					}
+					else if (event._alarm.get() == app_event_alarm_e::battery_crit)
+					{
+						//bip-bibiiiiip
+						break;
+					}
+					else
+					{
+						// crit 
+						for (uint16_t i = 0; i < 25; i++)
+						{
+							// bip-bip-bibibip
+							ufo::utl::sleep_for(500);
+						}
+						break;
 					}
 				}
+				else
+				{
+					event._app.set(app_event_e::alarm);
+					event._alarm.set(app_event_alarm_e::critical);
+				}
+
+				// {
+				// 	ufo::lock_guard<ufo::mutex_t> lock(appd._gimb._lock);
+				// 	if (appd._gimb._ready)
+				// 	{
+				// 		appd._gimb._ready = false;
+				// 		encripter.pack(cmd_t::remote_trpy,
+				// 					   appd._gimb._throt,
+				// 					   appd._gimb._roll,
+				// 					   appd._gimb._pitch,
+				// 					   appd._gimb._yaw);
+				// 	}
+				// }
 				if (encripter.size())
 				{
-					msg_block->Msg(encripter.get(), encripter.size());
+					sock_msg->Msg(encripter.get(), encripter.size());
 					encripter.reset();
 				}
-				ufo::utl::sleep_for(50);
+				ufo::utl::sleep_for(1);
             }
-            
+
+			// reasone ??
+
         }
+
+		static void net_callback(ufo::net::fsk_base::rcv_t *rcv){
+			ufo::Trace_t::flog("rcv[%u] (%u): %s\n", ufo::utl::get_time_millis(), rcv->_len, rcv->_payload);
+		}
 
 		void cns_init(ufo::cns::console_t & cns){
 			using namespace ufo;
+
+			cns.mk_blank(
+				"app",
+				"",
+				[](cns::console_t::block_t block)
+				{
+					vector_t<string_t> &arg_list = block->get_buf();
+
+					if (!arg_list.empty())
+					{
+						if (arg_list.size() > 1)
+						{
+							cns::opt_t opt(arg_list[1]);
+							if (opt)
+							{
+
+							}
+						}
+					}
+				});
 
 			cns.mk_blank(
 				"gmb",
@@ -233,12 +387,15 @@ namespace app
 								block->write("stop echo\n");
 								return;
 							}
+							else if (opt == 'c' || opt == "calibrate")
+							{
+								app::app_data_t &_app = app::app_data_t::get_instanse();
+								// _app.
+							}
 						}
 					}
 					block->log_incorrect_arg();
 				});
-			
-			
 		}
     };
 
