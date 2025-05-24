@@ -119,8 +119,8 @@ public:
         }
         uint16_t adc_ave = adc / smpl_out;
 
-        float r = ufo::utl::constrain(static_cast<float>(adc_ave), static_cast<float>(_min), static_cast<float>(_max));
-        r = ufo::utl::map(r, static_cast<float>(_min), static_cast<float>(_max), _trg_min, _trg_max);
+        uint16_t r = ufo::utl::constrain(adc_ave, _min, _max);
+        float rr = ufo::utl::map(static_cast<float>(r), static_cast<float>(_min), static_cast<float>(_max), _trg_min, _trg_max);
         return r;
     }
 };
