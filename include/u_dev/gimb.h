@@ -121,7 +121,7 @@ public:
 
         uint16_t r = ufo::utl::constrain(adc_ave, _min, _max);
         float rr = ufo::utl::map(static_cast<float>(r), static_cast<float>(_min), static_cast<float>(_max), _trg_min, _trg_max);
-        return r;
+        return rr;
     }
 };
 
