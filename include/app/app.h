@@ -126,20 +126,23 @@ namespace app
 			// ));
 
 			rc_io_t io_ctl(sys_data_t::get_instanse()._drv._i2c.get());
-			io_ctl.mk_bind(rc_digital_io_t::swa, [](uint8_t val){
-				// sys_data_t& ss = sys_data_t::get_instanse();
-				printf("swa: %u\n", val);
-			}, 0);
+			// io_ctl.mk_bind(rc_digital_io_t::swa, [](uint8_t val){
+			// 	// sys_data_t& ss = sys_data_t::get_instanse();
+			// 	printf("swa: %u\n", val);
+			// }, 0);
+
+			io_ctl.mk_bind(rc_digital_io_t::swa, rc_binds::arm_state, 0);
+			io_ctl.mk_bind(rc_digital_io_t::swd, rc_binds::find_mode, 0);
 
 			io_ctl.mk_bind(rc_digital_io_t::swb, [](uint8_t val){
 				// sys_data_t& ss = sys_data_t::get_instanse();
 				printf("swb: %u\n", val);
 			}, 0);
 
-			io_ctl.mk_bind(rc_digital_io_t::swd, [](uint8_t val){
-				// sys_data_t& ss = sys_data_t::get_instanse();
-				printf("swd: %u\n", val);
-			}, 0);
+			// io_ctl.mk_bind(rc_digital_io_t::swd, [](uint8_t val){
+			// 	// sys_data_t& ss = sys_data_t::get_instanse();
+			// 	printf("swd: %u\n", val);
+			// }, 0);
 
 			io_ctl.mk_bind(rc_digital_io_t::swc1, [](uint8_t val){
 				// sys_data_t& ss = sys_data_t::get_instanse();
@@ -255,25 +258,16 @@ namespace app
 
             while (token)
             {
+
+				if (encripter.size())
+				{
+					sock_msg->Msg(encripter.get(), encripter.size());
+					encripter.reset();
+				}
 				// lora_msg->Msg(3, "cntRV:228\n",11);
 				// sock_msg->fMsg("hello %lu", ufo::utl::get_time_millis());
 				if (event._app == app_event_e::control)
 				{
-					if (xQueueReceive(appd._queue._q, &cmd, 30))
-					{
-						if (cmd == qcmd_t::disarm)
-						{
-							encripter.pack(remote_cmd_e::arm, uint8_t(0u));
-							msys._cns.unlock();
-						}
-						else if (cmd == qcmd_t::req_ask)
-						{
-							encripter.pack(remote_cmd_e::ask, ufo::utl::get_time_millis());
-						}
-						continue;
-					}
-
-					// check connection (sometimes)
 					{
 						ufo::lock_guard<ufo::mutex_t> lock(appd._gimb._lock);
 						if (appd._gimb._ready)
@@ -286,43 +280,89 @@ namespace app
 										   appd._gimb._yaw);
 						}
 					}
+					
+					if (xQueueReceive(appd._queue._q, &cmd, 10))
+					{
+						// printf( "\n");
 
+						if (cmd == qcmd_t::disarm)
+						{
+							// printf( "rc::control::disarm\n");
 
+							encripter.pack(remote_cmd_e::arm, uint8_t(0u));
+							msys._cns.unlock();
+
+							// after checks
+							event._app.set(app_event_e::idle);
+						}
+						else if (cmd == qcmd_t::req_ask)
+						{
+							// printf( "rc::control::req_ask\n");
+
+							encripter.pack(remote_cmd_e::ask, ufo::utl::get_time_millis());
+						}
+						else {
+							printf( "rc::control::~\n");
+						}
+						continue;	// ?? if we handle trpy outside this scope (like it did now)
+					}
+					// printf( "\rrc::control::");
+
+					// check connection (sometimes)
+
+					//  handle trpy
+				
+					utl::sleep_for(20);
 				}
 				else if (event._app == app_event_e::idle)
 				{
-					if (xQueueReceive(appd._queue._q, &cmd, 30))
+					if (xQueueReceive(appd._queue._q, &cmd, 10))
 					{
+						// printf("\n");
+
 						if (cmd == qcmd_t::arm)					// set from btns
 						{
+							// printf( "rc::idle::arm\n");
+
 							event._app.set(app_event_e::control);
 							msys._cns.block();
 						}
 						else if (cmd == qcmd_t::find_on)			// set from btns
 						{
+							// printf( "rc::idle::find_mode\n");
+
 							event._app.set(app_event_e::alarm);
 							event._alarm.set(app_event_alarm_e::find_mode);
 						}
+						else if (cmd == qcmd_t::req_ask)
+						{
+							// printf("rc::idle::req_ask\n");
+						}
 						else {
-							printf("no such cmd");
+							printf("rc::no such cmd\n");
+
 							event._app.set(app_event_e::alarm);
 							event._alarm.set(app_event_alarm_e::warning);							
 						}
+						continue;		
 					}
+					// printf( "\rrc::idle::");
+					utl::sleep_for(10);
 					// check connection
-
-					// printf("hello after rcv\n");
-
 				}
 				else if (event._app == app_event_e::alarm)
 				{
 					if (event._alarm.get() == app_event_alarm_e::disconn)
 					{
 						// bip-bip-bip
+						printf("rc::alarm::disconn\n");
+
 						event._app.back();
 					}
 					else if (event._alarm.get() == app_event_alarm_e::find_mode)
 					{
+						printf("rc::alarm::find-find::\n\twait tubm-find-off\n");
+
 						while (true)
 						{
 							// bip-bip
@@ -330,39 +370,54 @@ namespace app
 							{
 								if (cmd == qcmd_t::find_off)
 								{
-									break;
+									printf("\n");
+
 									event._app.back();
+									break;
 								}
+								continue;
 							}
+							printf(".");
+							utl::sleep_for(50);
 						}
 					}
 					else if (event._alarm.get() == app_event_alarm_e::warning){
 						// bp
+						printf("rc::alarm::warning\n");
 						event._app.back();
 					}
 					else if (event._alarm.get() == app_event_alarm_e::battery)
 					{
 						// bip
+						printf("rc::alarm::bat low\n");
 						event._app.back();
 					}
 					else if (event._alarm.get() == app_event_alarm_e::battery_crit)
 					{
 						//bip-bibiiiiip
+						printf( "rc::alarm::bat low\n\tpower-off\n");
 						break;
 					}
 					else
 					{
 						// crit 
-						for (uint16_t i = 0; i < 25; i++)
+						for (uint16_t i = 0; i < 10; i++)
 						{
 							// bip-bip-bibibip
+							printf("rc::alarm::critical\n");
 							ufo::utl::sleep_for(500);
 						}
 						break;
 					}
 				}
+				else if (event._app == app_event_e::setting)
+				{
+					printf("rc::app::settings\n\tno impl\n");
+					event._app.back();
+				}
 				else
 				{
+					printf("rc::app::null\n");
 					event._app.set(app_event_e::alarm);
 					event._alarm.set(app_event_alarm_e::critical);
 				}
@@ -379,11 +434,7 @@ namespace app
 				// 					   appd._gimb._yaw);
 				// 	}
 				// }
-				if (encripter.size())
-				{
-					sock_msg->Msg(encripter.get(), encripter.size());
-					encripter.reset();
-				}
+
 				ufo::utl::sleep_for(1);
             }
 
