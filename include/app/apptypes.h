@@ -19,6 +19,7 @@ namespace app
         ask,
     };
 
+// =========================== events ===========================
     enum class app_event_e
     {
         null,
@@ -51,12 +52,7 @@ namespace app
         critical,
     };
 
-    // enum class app_event_calibrate_e {
-    //     null,
-
-    //     gimb,
-    //     pot,
-    // };
+// ==============================================================
 
     namespace types
     {
@@ -69,34 +65,17 @@ namespace app
             mot_valscns, // t== 1, r == 2, p == 3, y == 4
         };
 
-        template <typename Ty> 
-        struct event_subj_t
-        {
-            Ty _obj;
-            void set() {
-
-            }
-
-            Ty get(){
-                
-            }
-
-            bool operator== (const Ty& other) {
-                return _obj == other;
-            }
-        };
-        
         struct app_cmd_queue_t
         {
             enum class cmd_t {
                 null,
                 req_ask,
+
                 arm,
                 disarm,
-                trpy,
-                pot,
                 find_on,
                 find_off,
+
             };
             
             QueueHandle_t _q = nullptr;
@@ -116,7 +95,6 @@ namespace app
             }
         };
         
-
         template <typename Ty> 
         struct event_base_t
         {

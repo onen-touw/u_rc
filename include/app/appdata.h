@@ -10,8 +10,9 @@ namespace app
         public:
             // types::remote_data_t _remote = {};
             types::gimb_data_t _gimb = {};
-            ufo::bit_flag_t<uint16_t> _tumb = {};
             
+            ufo::bit_flag_t<uint16_t> _tumb = {};
+
             types::event_t _event = {};
             types::app_cmd_queue_t _queue = {};
         private:

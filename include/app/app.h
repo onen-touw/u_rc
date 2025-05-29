@@ -9,6 +9,7 @@
 #include "u_sys/utils.h"
 #include "u_sys/fsk.h"	 // sock lora ...
 #include "u_sys/cns.h"
+#include "u_sys/sdt.h"
 
 #include "u_drivers/uart/UFO_Uart.h"
 
@@ -24,6 +25,9 @@
 #include "sens.h"
 #include "appdata.h"
 #include "display.h"
+
+#include "rc_io.h"
+#include "io_binds.h"
 
 namespace app
 {
@@ -60,23 +64,94 @@ namespace app
 			cfg_io._core = 0;
 			cfg_io._prio = 5;
 			cfg_io._stackSize = 4096;
-			ufo::thread_guard task_io(ufo::thread(cfg_io, 
-				[](ufo::token_t token){
-				
-					pcf8575_t ioe(sys_data_t::get_instanse()._drv._i2c.get(), 0x22);
-					app_data_t &appd = app_data_t::get_instanse();
+			// ufo::thread_guard task_io(ufo::thread(cfg_io, 
+			// 	[](ufo::token_t token){
+			// 		app_data_t &appd = app_data_t::get_instanse();
+			// 		using qcmd_t = types::app_cmd_queue_t::cmd_t; 		
+			// 		pcf8575_t ioe(sys_data_t::get_instanse()._drv._i2c.get(), 0x22);
+			// 		ioe.InitSensor();
+			// 		while (token)
+			// 		{
+			// 			ioe.Update();
+			// 			bit_flag_t<uint16_t> u = ioe.Get();
+			// 			if (u != appd._tumb)
+			// 			{
+			// 				rc_tumblers_e t = rc_tumblers_e::max;
+			// 				for (size_t i = 0; i < 6 /* max_io_chan */; i++)
+			// 				{
+			// 					if (u.get(i) != appd._tumb.get(i))
+			// 					{
+			// 						t = static_cast<rc_tumblers_e>(i);
+			// 						switch (t)
+			// 						{
+			// 						case rc_tumblers_e::t0:
+			// 							xQueueSend(appd._queue._q,appd. , 30);
+			// 							printf("t00\n");
+			// 							break;
+			// 						case rc_tumblers_e::t1:
+			// 							// xQueueSend(appd._queue._q, );
+			// 							printf("t10\n");
+			// 							break;
+			// 						case rc_tumblers_e::t2:
+			// 							// xQueueSend(appd._queue._q, );
+			// 							printf("t20\n");
+			// 							break;
+			// 						case rc_tumblers_e::t3:
+			// 							// xQueueSend(appd._queue._q, );
+			// 							printf("t30\n");
+			// 							break;
+			// 						case rc_tumblers_e::t4:
+			// 							// xQueueSend(appd._queue._q, );
+			// 							printf("t40\n");
+			// 							break;
+			// 						case rc_tumblers_e::t5:
+			// 							// xQueueSend(appd._queue._q, );
+			// 							printf("t50\n");
+			// 							break;
+			// 						case rc_tumblers_e::t6:
+			// 							// xQueueSend(appd._queue._q, );
+			// 							printf("t60\n");
+			// 							break;
+			// 						default:
+			// 							break;
+			// 						}
+			// 						// xQueueSend(appd._queue._q, );
+			// 					}
+			// 				}
+			// 				appd._tumb = u;
+			// 			}
+			// 			ufo::utl::sleep_for(75);
+			// 		}
+			// 	}
+			// ));
 
-					while (token)
-					{
-						ioe.Update();
-						appd._tumb = ioe.Get();
-						printf("state: %u\n", appd._tumb.get());
-						ufo::utl::sleep_for(75);
-					}
-				}
-			));
+			rc_io_t io_ctl(sys_data_t::get_instanse()._drv._i2c.get());
+			io_ctl.mk_bind(rc_digital_io_t::swa, [](uint8_t val){
+				// sys_data_t& ss = sys_data_t::get_instanse();
+				printf("swa: %u\n", val);
+			}, 0);
 
+			io_ctl.mk_bind(rc_digital_io_t::swb, [](uint8_t val){
+				// sys_data_t& ss = sys_data_t::get_instanse();
+				printf("swb: %u\n", val);
+			}, 0);
 
+			io_ctl.mk_bind(rc_digital_io_t::swd, [](uint8_t val){
+				// sys_data_t& ss = sys_data_t::get_instanse();
+				printf("swd: %u\n", val);
+			}, 0);
+
+			io_ctl.mk_bind(rc_digital_io_t::swc1, [](uint8_t val){
+				// sys_data_t& ss = sys_data_t::get_instanse();
+				printf("swc1: %u\n", val);
+			}, 0);
+
+			io_ctl.mk_bind(rc_digital_io_t::swc2, [](uint8_t val){
+				// sys_data_t& ss = sys_data_t::get_instanse();
+				printf("swc2: %u\n", val);
+			}, 0);
+
+			ufo::thread_guard task_io(ufo::thread(cfg_io, &rc_io_t::task, &io_ctl));
 
 			nettt_t nettt;
 			nettt_t::desc_t sock = 0;
@@ -348,8 +423,6 @@ namespace app
 				"",
 				[](cns::console_t::block_t block)
 				{
-					block->write("gmb was called\n");
-
 					vector_t<string_t> &arg_list = block->get_buf();
 
 					if (!arg_list.empty())
@@ -389,9 +462,53 @@ namespace app
 							}
 							else if (opt == 'c' || opt == "calibrate")
 							{
-								app::app_data_t &_app = app::app_data_t::get_instanse();
+								// app::app_data_t &_app = app::app_data_t::get_instanse();
 								// _app.
 							}
+						}
+					}
+					block->log_incorrect_arg();
+				});
+
+				cns.mk_blank(
+				"tmb",
+				"",
+				[](cns::console_t::block_t block)
+				{
+					vector_t<string_t> &arg_list = block->get_buf();
+
+					if (!arg_list.empty())
+					{
+						if (arg_list.size() > 1)
+						{
+							cns::opt_t opt(arg_list[1]);
+							if (opt == 'e' || opt == "echo")
+							{
+								uint16_t d = 50;
+								if (opt.arg_count() == 1)
+								{
+									d = opt.get_arg<uint16_t>(0);
+									if (!d)
+									{
+										d = 50;
+									}
+									block->fwrite("change freq to %ums\n", d);
+								}
+								
+								app::app_data_t &_app = app::app_data_t::get_instanse();
+								while (!block->is_read_out_signal())
+								{
+									block->fwrite(">tmb%u\n\n", _app._tumb.get());
+									utl::sleep_for(d);
+								}
+								block->write("stop echo\n");
+								return;
+							}
+							// else if (opt == 's' || opt == "set")
+							// {
+							// 	app::app_data_t &_app = app::app_data_t::get_instanse();
+							// 	// _app.
+							// }
 						}
 					}
 					block->log_incorrect_arg();
