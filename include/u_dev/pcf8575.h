@@ -16,11 +16,14 @@ private:
 public:
     pcf8575_t(ufo::drv::UFO_I2C_Driver* driver, uint8_t addr = 0x22){
         esp_err_t err = this->Init(addr, driver);
+        
         if (err != ESP_OK)
         {
             ufo::Trace_t::log("driver initializing priblem\n");
             // SetCritical;      //think about it
         }
+        printf("ii\n");
+        _state.upd(0);
     }
     ~pcf8575_t(){}
 
@@ -31,8 +34,7 @@ public:
     void Update()
     {
         uint16_t r = Read16();
-
-        _state.upd();
+        _state.upd(r);
     }
     const state_t& Get() const
     {
