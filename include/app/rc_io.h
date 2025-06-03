@@ -126,7 +126,8 @@ public:
             pcf8575_t::state_t input = pcf.Get();
             if (input != prev)
             {
-                for (size_t i = 0; i < app::appconfig::io_perif_cnt+ 1u; i++)
+                app::app_data_t::get_instanse()._tumb = input;
+                for (size_t i = 0; i < app::appconfig::io_perif_cnt + 1u; ++i)
                 {
                     bool val = input.get(i);
                     if (val != prev.get(i))
