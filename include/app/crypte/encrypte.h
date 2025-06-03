@@ -200,7 +200,7 @@ namespace crt
 
 				++_iter;
 			}
-			_cnt++;
+			++_cnt;
 		}
 
 		void crypt_in_ufo(float arg)
@@ -215,7 +215,7 @@ namespace crt
 				
 				++_iter;
 			}
-			_cnt++;
+			++_cnt;
 		}
 	};
 
