@@ -10,8 +10,6 @@ namespace crt
 	// now support only four (4) arguments
 
 	template <typename cmd_t, std::enable_if_t<std::is_enum_v<cmd_t> && sizeof(cmd_t) == sizeof(char), bool> = true> 
-
-	template <typename cmd_t, std::enable_if_t<std::is_enum_v<cmd_t> && sizeof(cmd_t) == sizeof(char), bool> = true> 
 	class encrypte_t : protected crc16_t
 	{
 	public:
@@ -152,27 +150,6 @@ namespace crt
 		{
 			crypt_in_ufo(arg);
 			end_pack();
-		}
-
-		//	
-
-		void crypt_in_ufo(int8_t arg)
-		{
-			crypt_in_ufo(static_cast<uint8_t>(arg));
-		}
-
-		void crypt_in_ufo(uint8_t arg)
-		{
-			_buf[cfg::it_ty] |= (cfg::aarg_t::i8 << (_cnt * 2));
-			_buf[_iter] = arg;
-			crc(_buf[_iter]);
-
-			++_iter;
-			++_cnt;
-		}
-
-		void crypt_in_ufo(int16_t arg){
-			crypt_in_ufo(static_cast<uint16_t>(arg));
 		}
 
 		//	
