@@ -12,11 +12,14 @@ namespace app
 
     enum remote_cmd_e : uint8_t {
         null,
-        arm,
-        pot,
-        tumb,
-        trpy,
+        
         ask,
+        req,
+
+        arm,
+        servo,
+        trpy,
+        find_mode,
     };
 
 // =========================== events ===========================
@@ -69,7 +72,7 @@ namespace app
         {
             enum class cmd_t {
                 null,
-                req_ask,
+                req,
 
                 arm,
                 disarm,
@@ -133,13 +136,41 @@ namespace app
             // event_subj_t<app_event_calibrate_e> _subj_calibrate = {};
         };
         
+        struct gimb_stick_t{
+            uint16_t _raw = 0;
+            int16_t _min = 0;
+            int16_t _mid = 0;
+            int16_t _max = 0;
+            int16_t _result = 0;
+            int16_t _offset = 0;
+
+            void upd(uint16_t val, const int16_t nmin, const int16_t nmid, const int16_t nmax, const int16_t inv)
+            {
+                _raw = val;
+                if (_raw > _mid)
+                {
+                    _result = ufo::utl::constrain(static_cast<int16_t>(_raw), _mid, _max);
+                    _result = ufo::utl::map(_result, _mid, _max, nmid, nmax) * inv;
+                    return;
+                }
+
+                _result = ufo::utl::constrain(static_cast<int16_t>(_raw), _min, _mid);
+                _result = ufo::utl::map(_result, _min, _mid, nmin, nmid) * inv;
+            }
+
+            int16_t get() const {
+                return _result;
+            }
+            
+        };
 
         struct gimb_data_t
         {
-            float _throt = 0.f;
-            float _roll = 0.f;
-            float _pitch = 0.f;
-            float _yaw = 0.f;
+            
+            gimb_stick_t _throt;
+            gimb_stick_t _roll;
+            gimb_stick_t _pitch;
+            gimb_stick_t _yaw;
             bool _ready = false;
             ufo::mutex_t _lock;
         };

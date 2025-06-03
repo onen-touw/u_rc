@@ -28,6 +28,8 @@
 
 #include "rc_io.h"
 #include "io_binds.h"
+#include "rc_gimb.h"
+#include "rc_console.h"
 
 namespace app
 {
@@ -48,6 +50,34 @@ namespace app
 			app_data_t &appd = app_data_t::get_instanse();
 			sys_data_t& msys = sys_data_t::get_instanse();
 			
+			{
+				// base calibration data for gimballs
+				appd._gimb._throt._min = 0;
+				appd._gimb._throt._mid = 1633;
+				appd._gimb._throt._max = 3694;
+
+				appd._gimb._pitch._min = 0;
+				appd._gimb._pitch._mid = 1525;
+				appd._gimb._pitch._max = 3451;
+				
+				appd._gimb._roll._min = 20;
+				appd._gimb._roll._mid = 1737;
+				appd._gimb._roll._max = 3890;
+
+				appd._gimb._yaw._min = 47;
+				appd._gimb._yaw._mid = 1735;
+				appd._gimb._yaw._max = 3893;
+
+				
+				appd._gimb._throt._offset = 0;
+				appd._gimb._pitch._offset = -88;
+				appd._gimb._roll._offset = -94;
+				appd._gimb._yaw._offset = 105;
+
+			}
+
+
+
 			app::types::event_t event = {};
 			
 
@@ -135,22 +165,14 @@ namespace app
 			io_ctl.mk_bind(rc_digital_io_t::swd, rc_binds::find_mode, 0);
 
 			io_ctl.mk_bind(rc_digital_io_t::swb, [](uint8_t val){
-				// sys_data_t& ss = sys_data_t::get_instanse();
 				printf("swb: %u\n", val);
 			}, 0);
 
-			// io_ctl.mk_bind(rc_digital_io_t::swd, [](uint8_t val){
-			// 	// sys_data_t& ss = sys_data_t::get_instanse();
-			// 	printf("swd: %u\n", val);
-			// }, 0);
-
 			io_ctl.mk_bind(rc_digital_io_t::swc1, [](uint8_t val){
-				// sys_data_t& ss = sys_data_t::get_instanse();
 				printf("swc1: %u\n", val);
 			}, 0);
 
 			io_ctl.mk_bind(rc_digital_io_t::swc2, [](uint8_t val){
-				// sys_data_t& ss = sys_data_t::get_instanse();
 				printf("swc2: %u\n", val);
 			}, 0);
 
@@ -245,7 +267,6 @@ namespace app
             
 				// display.draw_line(0, 0, 240, 320, st7789_t::basic_GREEN);
 				// ufo::utl::sleep_for(2000);
-            
 #pragma endregion 
 
 			crt::encrypte_t<remote_cmd_e> encripter;
@@ -258,7 +279,6 @@ namespace app
 
             while (token)
             {
-
 				if (encripter.size())
 				{
 					sock_msg->Msg(encripter.get(), encripter.size());
@@ -273,11 +293,12 @@ namespace app
 						if (appd._gimb._ready)
 						{
 							appd._gimb._ready = false;
+
 							encripter.pack(remote_cmd_e::trpy,
-										   appd._gimb._throt,
-										   appd._gimb._roll,
-										   appd._gimb._pitch,
-										   appd._gimb._yaw);
+										   appd._gimb._throt.get(),
+										   appd._gimb._roll.get(),
+										   appd._gimb._pitch.get(),
+										   appd._gimb._yaw.get());
 						}
 					}
 					
@@ -287,15 +308,16 @@ namespace app
 
 						if (cmd == qcmd_t::disarm)
 						{
-							// printf( "rc::control::disarm\n");
-
-							encripter.pack(remote_cmd_e::arm, uint8_t(0u));
-							msys._cns.unlock();
+							printf( "rc::control::disarm\n");
+							encripter.pack(remote_cmd_e::arm, int8_t(0));
+							// encripter.log();
 
 							// after checks
+
 							event._app.set(app_event_e::idle);
+							// msys._cns.unlock();
 						}
-						else if (cmd == qcmd_t::req_ask)
+						else if (cmd == qcmd_t::req)
 						{
 							// printf( "rc::control::req_ask\n");
 
@@ -307,11 +329,8 @@ namespace app
 						continue;	// ?? if we handle trpy outside this scope (like it did now)
 					}
 					// printf( "\rrc::control::");
-
 					// check connection (sometimes)
 
-					//  handle trpy
-				
 					utl::sleep_for(20);
 				}
 				else if (event._app == app_event_e::idle)
@@ -319,24 +338,30 @@ namespace app
 					if (xQueueReceive(appd._queue._q, &cmd, 10))
 					{
 						// printf("\n");
-
 						if (cmd == qcmd_t::arm)					// set from btns
 						{
-							// printf( "rc::idle::arm\n");
-
-							event._app.set(app_event_e::control);
-							msys._cns.block();
+							printf( "rc::idle::arm\n");
+							
+							if (!msys._cns.get_state().get(ufo::types::cns_t::cns_state_t::started))
+							{
+								// todo!!!
+								// msys._cns.block();
+								event._app.set(app_event_e::control);
+								encripter.pack(remote_cmd_e::arm, uint8_t(1));
+							}
 						}
 						else if (cmd == qcmd_t::find_on)			// set from btns
 						{
 							// printf( "rc::idle::find_mode\n");
+							encripter.pack(remote_cmd_e::find_mode, uint8_t(1));
 
 							event._app.set(app_event_e::alarm);
 							event._alarm.set(app_event_alarm_e::find_mode);
 						}
-						else if (cmd == qcmd_t::req_ask)
+						else if (cmd == qcmd_t::req)
 						{
 							// printf("rc::idle::req_ask\n");
+							encripter.pack(remote_cmd_e::ask, utl::get_time_millis());
 						}
 						else {
 							printf("rc::no such cmd\n");
@@ -371,7 +396,7 @@ namespace app
 								if (cmd == qcmd_t::find_off)
 								{
 									printf("\n");
-
+									encripter.pack(remote_cmd_e::find_mode, uint8_t(0));
 									event._app.back();
 									break;
 								}
@@ -409,6 +434,8 @@ namespace app
 						}
 						break;
 					}
+					continue;
+
 				}
 				else if (event._app == app_event_e::setting)
 				{
@@ -421,20 +448,6 @@ namespace app
 					event._app.set(app_event_e::alarm);
 					event._alarm.set(app_event_alarm_e::critical);
 				}
-
-				// {
-				// 	ufo::lock_guard<ufo::mutex_t> lock(appd._gimb._lock);
-				// 	if (appd._gimb._ready)
-				// 	{
-				// 		appd._gimb._ready = false;
-				// 		encripter.pack(cmd_t::remote_trpy,
-				// 					   appd._gimb._throt,
-				// 					   appd._gimb._roll,
-				// 					   appd._gimb._pitch,
-				// 					   appd._gimb._yaw);
-				// 	}
-				// }
-
 				ufo::utl::sleep_for(1);
             }
 
@@ -449,121 +462,153 @@ namespace app
 		void cns_init(ufo::cns::console_t & cns){
 			using namespace ufo;
 
-			cns.mk_blank(
-				"app",
-				"",
-				[](cns::console_t::block_t block)
-				{
-					vector_t<string_t> &arg_list = block->get_buf();
+			// cns.mk_blank(
+			// 	"app",
+			// 	"",
+			// 	[](cns::console_t::block_t block)
+			// 	{
+			// 		vector_t<string_t> &arg_list = block->get_buf();
 
-					if (!arg_list.empty())
-					{
-						if (arg_list.size() > 1)
-						{
-							cns::opt_t opt(arg_list[1]);
-							if (opt)
-							{
+			// 		if (!arg_list.empty())
+			// 		{
+			// 			if (arg_list.size() > 1)
+			// 			{
+			// 				cns::opt_t opt(arg_list[1]);
+			// 				if (opt)
+			// 				{
 
-							}
-						}
-					}
-				});
+			// 				}
+			// 			}
+			// 		}
+			// 	});
 
 			cns.mk_blank(
 				"gmb",
 				"",
-				[](cns::console_t::block_t block)
-				{
-					vector_t<string_t> &arg_list = block->get_buf();
-
-					if (!arg_list.empty())
-					{
-						if (arg_list.size() > 1)
-						{
-							cns::opt_t opt(arg_list[1]);
-							if (opt == 'e' || opt == "echo")
-							{
-								uint16_t d = 50;
-
-								if (opt.arg_count() == 1)
-								{
-									d = opt.get_arg<uint16_t>(0);
-									if (!d)
-									{
-										d = 50;
-									}
-									block->fwrite("change freq to %ums\n", d);
-								}
-								
-								app::app_data_t &_app = app::app_data_t::get_instanse();
-								while (!block->is_read_out_signal())
-								{
-									{
-										block->fwrite(">t:%.3f\n>r:%.3f\n>p:%.3f\n>y:%.3f\n\n",
-											_app._gimb._throt, 
-											_app._gimb._roll, 
-											_app._gimb._pitch, 
-											_app._gimb._yaw
-											);
-									}
-									utl::sleep_for(d);
-								}
-								block->write("stop echo\n");
-								return;
-							}
-							else if (opt == 'c' || opt == "calibrate")
-							{
-								// app::app_data_t &_app = app::app_data_t::get_instanse();
-								// _app.
-							}
-						}
-					}
-					block->log_incorrect_arg();
-				});
-
+				console_gmb);
+			
 				cns.mk_blank(
-				"tmb",
+				"echo",
 				"",
-				[](cns::console_t::block_t block)
-				{
-					vector_t<string_t> &arg_list = block->get_buf();
+				console_echo);
 
-					if (!arg_list.empty())
-					{
-						if (arg_list.size() > 1)
-						{
-							cns::opt_t opt(arg_list[1]);
-							if (opt == 'e' || opt == "echo")
-							{
-								uint16_t d = 50;
-								if (opt.arg_count() == 1)
-								{
-									d = opt.get_arg<uint16_t>(0);
-									if (!d)
-									{
-										d = 50;
-									}
-									block->fwrite("change freq to %ums\n", d);
-								}
+			// cns.mk_blank(
+			// 	"gmb",
+			// 	"",
+			// 	[](cns::console_t::block_t block)
+			// 	{
+			// 		vector_t<string_t> &arg_list = block->get_buf();
+
+			// 		if (!arg_list.empty())
+			// 		{
+			// 			if (arg_list.size() > 1)
+			// 			{
+			// 				cns::opt_t opt(arg_list[1]);
+			// 				if (opt == 'e' || opt == "echo")
+			// 				{
+			// 					uint16_t d = 50;
+
+			// 					if (opt.arg_count() == 1)
+			// 					{
+			// 						d = opt.get_arg<uint16_t>(0);
+			// 						if (!d)
+			// 						{
+			// 							d = 50;
+			// 						}
+			// 						block->fwrite("change freq to %ums\n", d);
+			// 					}
 								
-								app::app_data_t &_app = app::app_data_t::get_instanse();
-								while (!block->is_read_out_signal())
-								{
-									block->fwrite(">tmb%u\n\n", _app._tumb.get());
-									utl::sleep_for(d);
-								}
-								block->write("stop echo\n");
-								return;
-							}
-							// else if (opt == 's' || opt == "set")
-							// {
-							// 	app::app_data_t &_app = app::app_data_t::get_instanse();
-							// 	// _app.
-							// }
-						}
-					}
-					block->log_incorrect_arg();
-				});
+			// 					app::app_data_t &_app = app::app_data_t::get_instanse();
+			// 					while (!block->is_read_out_signal())
+			// 					{
+			// 						{
+			// 							block->fwrite(">t:%d\n>r:%d\n>p:%d\n>y:%d\n\n",
+			// 								_app._gimb._throt, 
+			// 								_app._gimb._roll, 
+			// 								_app._gimb._pitch, 
+			// 								_app._gimb._yaw
+			// 								);
+			// 						}
+			// 						utl::sleep_for(d);
+			// 					}
+			// 					block->write("stop echo\n");
+			// 					return;
+			// 				}
+			// 				else if (opt == 'c' || opt == "calibrate")
+			// 				{
+			// 					app::app_data_t &_app = app::app_data_t::get_instanse();
+			// 					uint16_t d = 50;
+
+			// 					if (opt.arg_count() == 1)
+			// 					{
+			// 						d = opt.get_arg<uint16_t>(0);
+			// 						if (!d || d > 20)
+			// 						{
+			// 							d = 10;
+			// 						}
+			// 						block->fwrite("sempl cnt: %ums\n", d);
+			// 					}
+
+			// 					block->fwrite("pitch calibrating\n");
+
+
+			// 					uint16_t i = 0;
+			// 					uint64_t val = 0;
+			// 					for (; i < d; ++i)
+			// 					{
+			// 						val += _app._gimb._pitch;
+			// 						ufo::utl::sleep_for(5);
+			// 					}
+			// 					val /= i;
+			// 				}
+			// 			}
+			// 		}
+			// 		block->log_incorrect_arg();
+			// 	});
+
+			// 	cns.mk_blank(
+			// 	"tmb",
+			// 	"",
+			// 	[](cns::console_t::block_t block)
+			// 	{
+			// 		vector_t<string_t> &arg_list = block->get_buf();
+
+			// 		if (!arg_list.empty())
+			// 		{
+			// 			if (arg_list.size() > 1)
+			// 			{
+			// 				cns::opt_t opt(arg_list[1]);
+			// 				if (opt == 'e' || opt == "echo")
+			// 				{
+			// 					uint16_t d = 50;
+			// 					if (opt.arg_count() == 1)
+			// 					{
+			// 						d = opt.get_arg<uint16_t>(0);
+			// 						if (!d)
+			// 						{
+			// 							d = 50;
+			// 						}
+			// 						block->fwrite("change freq to %ums\n", d);
+			// 					}
+								
+			// 					app::app_data_t &_app = app::app_data_t::get_instanse();
+			// 					while (!block->is_read_out_signal())
+			// 					{
+			// 						block->fwrite(">tmb%u\n\n", _app._tumb.get());
+			// 						utl::sleep_for(d);
+			// 					}
+			// 					block->write("stop echo\n");
+			// 					return;
+			// 				}
+			// 				// else if (opt == 's' || opt == "set")
+			// 				// {
+			// 				// 	app::app_data_t &_app = app::app_data_t::get_instanse();
+			// 				// 	// _app.
+			// 				// }
+			// 			}
+			// 		}
+			// 		block->log_incorrect_arg();
+			// 	});
 		}
     };
 
