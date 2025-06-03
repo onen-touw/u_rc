@@ -19,6 +19,7 @@ namespace crt {
 		~decrypte_t() {}
 
 		static void unpack(uint8_t* buf, uint8_t sz, handle_t handle) {
+	
 			if (sz < cfg::it_data)
 			{
 				// ufo::Trace_t::log("inc sz error\n");
@@ -28,7 +29,7 @@ namespace crt {
 			if (sz != buf[cfg::it_sz])
 			{
 				// ufo::Trace_t::log("error: bad_packet\n");
-				printf("error: bad_packet\n");
+				printf("error: bad_packet, len: %u %u\n", sz, buf[cfg::it_sz]);
 				return;
 			}
 
@@ -43,11 +44,12 @@ namespace crt {
 			if (q != crc)
 			{
 				// ufo::Trace_t::log("error: bad_crc\n");
-				printf("error: bad_crc\n");
+				printf("error: bad_crc %u\n", q);
 				return;
 			}
 			uint8_t cnt = buf[cfg::it_cnt];
-		
+			
+
 			// parse in
 			if (buf[cfg::it_in] == '>')
 			{
@@ -95,7 +97,7 @@ namespace crt {
 				return;
 			}
 
-			for (size_t i = cfg::it_data; i < sz - 1ull; i++)
+			for (size_t i = cfg::it_data; i < sz - 2ull; i++)
 			{
 				printf("\t%u\n", buf[i]);
 				// std::cout << "\t" << std::bitset<8>(_buf[i]) << '\n';
@@ -105,7 +107,7 @@ namespace crt {
 					printf("\n");
 				}
 			}
-			printf("crc %u\n", buf[sz - 1ull]);
+			printf("crc %u, %u\n", buf[sz - 1ull], buf[sz - 2ull]);
 			// std::cout << "crc: " << static_cast<int>(_buf[sz - 1ull]) << '\n';
 		}
 	};

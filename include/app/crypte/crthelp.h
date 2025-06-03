@@ -167,7 +167,7 @@ namespace crt
     }
 
     template <arg_ind ind, typename Ty, std::enable_if_t<std::is_floating_point_v<Ty> && sizeof(Ty) <= 4ul && ind <= 4, bool> = true>
-    Ty gget_arg(/*uint8_t _pos,*/ uint8_t *buf)
+    Ty gget_arg(uint8_t *buf)
     {
 
         uint8_t it = cfg::it_data + sizeof(float) * ind;
