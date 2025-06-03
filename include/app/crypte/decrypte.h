@@ -109,4 +109,4 @@ namespace crt {
 			// std::cout << "crc: " << static_cast<int>(_buf[sz - 1ull]) << '\n';
 		}
 	};
-}
+} 

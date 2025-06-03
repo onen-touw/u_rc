@@ -3,10 +3,13 @@
 #include "crtypes.h"
 #include "crthelp.h"
 #include <type_traits>
+#include <type_traits>
 
 namespace crt
 {
 	// now support only four (4) arguments
+
+	template <typename cmd_t, std::enable_if_t<std::is_enum_v<cmd_t> && sizeof(cmd_t) == sizeof(char), bool> = true> 
 
 	template <typename cmd_t, std::enable_if_t<std::is_enum_v<cmd_t> && sizeof(cmd_t) == sizeof(char), bool> = true> 
 	class encrypte_t : protected crc16_t
@@ -172,9 +175,30 @@ namespace crt
 			crypt_in_ufo(static_cast<uint16_t>(arg));
 		}
 
+		//	
+
+		void crypt_in_ufo(int8_t arg)
+		{
+			crypt_in_ufo(static_cast<uint8_t>(arg));
+		}
+
+		void crypt_in_ufo(uint8_t arg)
+		{
+			_buf[cfg::it_ty] |= (cfg::arg_t::i8 << (_cnt * 2));
+			_buf[_iter] = arg;
+			crc(_buf[_iter]);
+
+			++_iter;
+			++_cnt;
+		}
+
+		void crypt_in_ufo(int16_t arg){
+			crypt_in_ufo(static_cast<uint16_t>(arg));
+		}
+
 		void crypt_in_ufo(uint16_t arg)
 		{
-			_buf[cfg::it_ty] |= (cfg::aarg_t::i16 << (_cnt * 2));
+			_buf[cfg::it_ty] |= (cfg::arg_t::i16 << (_cnt * 2));
 			for (uint_t i = 0; i < sizeof(uint16_t); i++)
 			{
 				_buf[_iter] = (arg >> i * 8) & 255;
@@ -185,15 +209,14 @@ namespace crt
 			++_cnt;
 		}
 
-
-		// void crypt_in_ufo(uint16_t arg)
-		// {
-		// 	crypt_in_ufo(static_cast<int32_t>(arg));
-		// }
-
 		void crypt_in_ufo(int32_t arg)
 		{
-			_buf[cfg::it_ty] |= (cfg::arg_t::i << (_cnt * 2));
+			crypt_in_ufo(static_cast<uint32_t>(arg));
+		}
+
+		void crypt_in_ufo(uint32_t arg)
+		{
+			_buf[cfg::it_ty] |= (cfg::arg_t::i32 << (_cnt * 2));
 			for (uint_t i = 0; i < sizeof(int32_t); i++)
 			{
 				_buf[_iter] = (arg >> i * 8) & 255;
@@ -201,12 +224,12 @@ namespace crt
 
 				++_iter;
 			}
-			_cnt++;
+			++_cnt;
 		}
 
 		void crypt_in_ufo(float arg)
 		{
-			_buf[cfg::it_ty] |= (cfg::arg_t::f << (_cnt * 2));
+			_buf[cfg::it_ty] |= (cfg::arg_t::f32 << (_cnt * 2));
 
 			int32_t in = ftob(arg);
 			for (uint_t i = 0; i < 4; i++)
@@ -216,23 +239,8 @@ namespace crt
 				
 				++_iter;
 			}
-			_cnt++;
+			++_cnt;
 		}
-
-		// void crypt_in_ufo(bool arg)
-		// {
-		// 	_buf[cfg::it_ty] |= (cfg::arg_t::b << (_cnt * 2));
-		// 	int32_t in = static_cast<int32_t>(arg);
-
-		// 	for (uint_t i = 0; i < 4; i++)
-		// 	{
-		// 		_buf[_iter] = (in >> i * 8) & 255;
-		// 		crc(_buf[_iter]);
-
-		// 		++_iter;
-		// 	}
-		// 	_cnt++;
-		// }
 	};
 
 }

@@ -22,15 +22,8 @@ namespace crt {
 		static constexpr uint16_t it_data = 5;
 
 		static constexpr uint16_t max_args = 4;
-	
+
 		enum arg_t : uint8_t {
-			i = 0b01,
-			f = 0b10,
-			b = 0b11,
-		};
-
-
-		enum aarg_t : uint8_t {
 			i8 = 0b00,
 			i16 = 0b01,
 			i32 = 0b10,
