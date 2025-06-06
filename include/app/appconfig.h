@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "soc/gpio_num.h"
 // ===================== minimal requared ===================== 
 
 #define UFO_WIFI
@@ -57,6 +58,10 @@ namespace app
         static constexpr int16_t gimb_pitch_invert = -1;    // -1 if inverted
         static constexpr int16_t gimb_roll_invert = -1; 
         static constexpr int16_t gimb_yaw_invert = 1; 
+
+        static constexpr gpio_num_t pin_display _dc = gpio_num_t::GPIO_NUM_26;
+        static constexpr gpio_num_t pin_display _rst = gpio_num_t::GPIO_NUM_27;
+        static constexpr gpio_num_t pin_display _cs = gpio_num_t::GPIO_NUM_12;
 
     };
 

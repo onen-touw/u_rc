@@ -94,66 +94,7 @@ namespace app
 			cfg_io._core = 0;
 			cfg_io._prio = 5;
 			cfg_io._stackSize = 4096;
-			// ufo::thread_guard task_io(ufo::thread(cfg_io, 
-			// 	[](ufo::token_t token){
-			// 		app_data_t &appd = app_data_t::get_instanse();
-			// 		using qcmd_t = types::app_cmd_queue_t::cmd_t; 		
-			// 		pcf8575_t ioe(sys_data_t::get_instanse()._drv._i2c.get(), 0x22);
-			// 		ioe.InitSensor();
-			// 		while (token)
-			// 		{
-			// 			ioe.Update();
-			// 			bit_flag_t<uint16_t> u = ioe.Get();
-			// 			if (u != appd._tumb)
-			// 			{
-			// 				rc_tumblers_e t = rc_tumblers_e::max;
-			// 				for (size_t i = 0; i < 6 /* max_io_chan */; i++)
-			// 				{
-			// 					if (u.get(i) != appd._tumb.get(i))
-			// 					{
-			// 						t = static_cast<rc_tumblers_e>(i);
-			// 						switch (t)
-			// 						{
-			// 						case rc_tumblers_e::t0:
-			// 							xQueueSend(appd._queue._q,appd. , 30);
-			// 							printf("t00\n");
-			// 							break;
-			// 						case rc_tumblers_e::t1:
-			// 							// xQueueSend(appd._queue._q, );
-			// 							printf("t10\n");
-			// 							break;
-			// 						case rc_tumblers_e::t2:
-			// 							// xQueueSend(appd._queue._q, );
-			// 							printf("t20\n");
-			// 							break;
-			// 						case rc_tumblers_e::t3:
-			// 							// xQueueSend(appd._queue._q, );
-			// 							printf("t30\n");
-			// 							break;
-			// 						case rc_tumblers_e::t4:
-			// 							// xQueueSend(appd._queue._q, );
-			// 							printf("t40\n");
-			// 							break;
-			// 						case rc_tumblers_e::t5:
-			// 							// xQueueSend(appd._queue._q, );
-			// 							printf("t50\n");
-			// 							break;
-			// 						case rc_tumblers_e::t6:
-			// 							// xQueueSend(appd._queue._q, );
-			// 							printf("t60\n");
-			// 							break;
-			// 						default:
-			// 							break;
-			// 						}
-			// 						// xQueueSend(appd._queue._q, );
-			// 					}
-			// 				}
-			// 				appd._tumb = u;
-			// 			}
-			// 			ufo::utl::sleep_for(75);
-			// 		}
-			// 	}
-			// ));
+
 
 			rc_io_t io_ctl(sys_data_t::get_instanse()._drv._i2c.get());
 			// io_ctl.mk_bind(rc_digital_io_t::swa, [](uint8_t val){
@@ -164,7 +105,8 @@ namespace app
 			io_ctl.mk_bind(rc_digital_io_t::swa, rc_binds::arm_state, 0);
 			io_ctl.mk_bind(rc_digital_io_t::swd, rc_binds::find_mode, 0);
 
-			io_ctl.mk_bind(rc_digital_io_t::swb, [](uint8_t val){
+			io_ctl.mk_bind(rc_digital_io_t::swb, 
+				[](uint8_t val){
 				printf("swb: %u\n", val);
 			}, 0);
 
@@ -192,31 +134,7 @@ namespace app
 			// nettt.mk(lrr, std::make_unique<nettt_t::lora_t>(msys._drv._uart1.get(), net_callback));
 			// printf("sd %u, ld %u\n", sock, lrr);
 
-			// lora llora(msys._drv._uart1.get());
-			// UFO_LoraSettings conf = {};
-			// conf._selfAddr._addh = 0;
-			// conf._selfAddr._addl = 2;
-			// conf._selfAddr._chan = 10;
-			// conf._targAddr._addh = UFO_LORA_BROADCAST;
-			// conf._targAddr._addl = UFO_LORA_BROADCAST;
-			// conf._targAddr._chan = 8;
-			// conf.adrt =  LORA_AIR_DATA_RATE_110_384;
-			// llora.SetConfig(conf, [](lora::rcv_t* cll){
-			// 	printf("rcv on RC from ROVER: %s\n", cll->_payload);
-			// });
-			// llora.Setup();
-			// lora::msg_block_t lora_msg = llora.get_block();
-			// ufo::thread_cfg cfg_lora;
-			// cfg_lora._name = "lora";
-			// cfg_lora._core = 1;
-			// cfg_lora._prio = 5;
-			// cfg_lora._stackSize = 4096;
-			// ufo::thread_guard task_lora(ufo::thread(cfg_lora, [](lora* lr, token_t token){
-			// 	while (token)
-			// 	{
-			// 		lr->Iteration();
-			// 	}
-			// }, &llora));
+
 #pragma region //display
 			
 						// ufo::sys_data_t& _sys = ufo::sys_data_t::get_instanse();
@@ -461,154 +379,8 @@ namespace app
 
 		void cns_init(ufo::cns::console_t & cns){
 			using namespace ufo;
-
-			// cns.mk_blank(
-			// 	"app",
-			// 	"",
-			// 	[](cns::console_t::block_t block)
-			// 	{
-			// 		vector_t<string_t> &arg_list = block->get_buf();
-
-			// 		if (!arg_list.empty())
-			// 		{
-			// 			if (arg_list.size() > 1)
-			// 			{
-			// 				cns::opt_t opt(arg_list[1]);
-			// 				if (opt)
-			// 				{
-
-			// 				}
-			// 			}
-			// 		}
-			// 	});
-
-			cns.mk_blank(
-				"gmb",
-				"",
-				console_gmb);
-			
-				cns.mk_blank(
-				"echo",
-				"",
-				console_echo);
-
-			// cns.mk_blank(
-			// 	"gmb",
-			// 	"",
-			// 	[](cns::console_t::block_t block)
-			// 	{
-			// 		vector_t<string_t> &arg_list = block->get_buf();
-
-			// 		if (!arg_list.empty())
-			// 		{
-			// 			if (arg_list.size() > 1)
-			// 			{
-			// 				cns::opt_t opt(arg_list[1]);
-			// 				if (opt == 'e' || opt == "echo")
-			// 				{
-			// 					uint16_t d = 50;
-
-			// 					if (opt.arg_count() == 1)
-			// 					{
-			// 						d = opt.get_arg<uint16_t>(0);
-			// 						if (!d)
-			// 						{
-			// 							d = 50;
-			// 						}
-			// 						block->fwrite("change freq to %ums\n", d);
-			// 					}
-								
-			// 					app::app_data_t &_app = app::app_data_t::get_instanse();
-			// 					while (!block->is_read_out_signal())
-			// 					{
-			// 						{
-			// 							block->fwrite(">t:%d\n>r:%d\n>p:%d\n>y:%d\n\n",
-			// 								_app._gimb._throt, 
-			// 								_app._gimb._roll, 
-			// 								_app._gimb._pitch, 
-			// 								_app._gimb._yaw
-			// 								);
-			// 						}
-			// 						utl::sleep_for(d);
-			// 					}
-			// 					block->write("stop echo\n");
-			// 					return;
-			// 				}
-			// 				else if (opt == 'c' || opt == "calibrate")
-			// 				{
-			// 					app::app_data_t &_app = app::app_data_t::get_instanse();
-			// 					uint16_t d = 50;
-
-			// 					if (opt.arg_count() == 1)
-			// 					{
-			// 						d = opt.get_arg<uint16_t>(0);
-			// 						if (!d || d > 20)
-			// 						{
-			// 							d = 10;
-			// 						}
-			// 						block->fwrite("sempl cnt: %ums\n", d);
-			// 					}
-
-			// 					block->fwrite("pitch calibrating\n");
-
-
-			// 					uint16_t i = 0;
-			// 					uint64_t val = 0;
-			// 					for (; i < d; ++i)
-			// 					{
-			// 						val += _app._gimb._pitch;
-			// 						ufo::utl::sleep_for(5);
-			// 					}
-			// 					val /= i;
-			// 				}
-			// 			}
-			// 		}
-			// 		block->log_incorrect_arg();
-			// 	});
-
-			// 	cns.mk_blank(
-			// 	"tmb",
-			// 	"",
-			// 	[](cns::console_t::block_t block)
-			// 	{
-			// 		vector_t<string_t> &arg_list = block->get_buf();
-
-			// 		if (!arg_list.empty())
-			// 		{
-			// 			if (arg_list.size() > 1)
-			// 			{
-			// 				cns::opt_t opt(arg_list[1]);
-			// 				if (opt == 'e' || opt == "echo")
-			// 				{
-			// 					uint16_t d = 50;
-			// 					if (opt.arg_count() == 1)
-			// 					{
-			// 						d = opt.get_arg<uint16_t>(0);
-			// 						if (!d)
-			// 						{
-			// 							d = 50;
-			// 						}
-			// 						block->fwrite("change freq to %ums\n", d);
-			// 					}
-								
-			// 					app::app_data_t &_app = app::app_data_t::get_instanse();
-			// 					while (!block->is_read_out_signal())
-			// 					{
-			// 						block->fwrite(">tmb%u\n\n", _app._tumb.get());
-			// 						utl::sleep_for(d);
-			// 					}
-			// 					block->write("stop echo\n");
-			// 					return;
-			// 				}
-			// 				// else if (opt == 's' || opt == "set")
-			// 				// {
-			// 				// 	app::app_data_t &_app = app::app_data_t::get_instanse();
-			// 				// 	// _app.
-			// 				// }
-			// 			}
-			// 		}
-			// 		block->log_incorrect_arg();
-			// 	});
+			cns.mk_blank("gmb", "", console_gmb);
+			cns.mk_blank("echo", "", console_echo);
 		}
     };
 
