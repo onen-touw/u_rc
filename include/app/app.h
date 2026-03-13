@@ -176,10 +176,11 @@ namespace app
 				printf("swc2: %u\n", val);
 			}, 0);
 
-			ufo::thread_guard task_io(ufo::thread(cfg_io, &rc_io_t::task, &io_ctl));
+			// ufo::thread_guard task_io(ufo::thread(cfg_io, &rc_io_t::task, &io_ctl));
 
 			nettt_t nettt;
 			nettt_t::desc_t sock = 0;
+			nettt_t::desc_t lrr = 0;
 			nettt_t::msg_block_t sock_msg = nettt.mk(
 				sock,	
 				std::make_unique<nettt_t::sock_t>(
@@ -188,35 +189,14 @@ namespace app
 					net_callback)
 				);
 
-			// nettt_t::desc_t lrr = 0;
-			// nettt.mk(lrr, std::make_unique<nettt_t::lora_t>(msys._drv._uart1.get(), net_callback));
-			// printf("sd %u, ld %u\n", sock, lrr);
 
-			// lora llora(msys._drv._uart1.get());
-			// UFO_LoraSettings conf = {};
-			// conf._selfAddr._addh = 0;
-			// conf._selfAddr._addl = 2;
-			// conf._selfAddr._chan = 10;
-			// conf._targAddr._addh = UFO_LORA_BROADCAST;
-			// conf._targAddr._addl = UFO_LORA_BROADCAST;
-			// conf._targAddr._chan = 8;
-			// conf.adrt =  LORA_AIR_DATA_RATE_110_384;
-			// llora.SetConfig(conf, [](lora::rcv_t* cll){
-			// 	printf("rcv on RC from ROVER: %s\n", cll->_payload);
-			// });
-			// llora.Setup();
-			// lora::msg_block_t lora_msg = llora.get_block();
-			// ufo::thread_cfg cfg_lora;
-			// cfg_lora._name = "lora";
-			// cfg_lora._core = 1;
-			// cfg_lora._prio = 5;
-			// cfg_lora._stackSize = 4096;
-			// ufo::thread_guard task_lora(ufo::thread(cfg_lora, [](lora* lr, token_t token){
-			// 	while (token)
-			// 	{
-			// 		lr->Iteration();
-			// 	}
-			// }, &llora));
+			// nettt_t::msg_block_t lora_msg = nettt.mk(
+			// 	lrr,	
+			// 	std::make_unique<nettt_t::lora_t>(
+			// 		msys._drv._uart1.get(), 
+			// 		lora_test_callback)
+			// 	);
+
 #pragma region //display
 			
 						// ufo::sys_data_t& _sys = ufo::sys_data_t::get_instanse();
@@ -279,6 +259,8 @@ namespace app
 
             while (token)
             {
+				// lora_msg->fMsg(3, "rc: %lu", utl::get_time_millis());
+				
 				if (encripter.size())
 				{
 					sock_msg->Msg(encripter.get(), encripter.size());
@@ -459,6 +441,11 @@ namespace app
 			ufo::Trace_t::flog("rcv[%u] (%u): %s\n", ufo::utl::get_time_millis(), rcv->_len, rcv->_payload);
 		}
 
+		static void lora_test_callback(ufo::net::fsk_base::rcv_t *rcv){
+			ufo::Trace_t::flog("rcv[%u] (%u): %s\n", ufo::utl::get_time_millis(), rcv->_len, rcv->_payload);
+		}
+
+
 		void cns_init(ufo::cns::console_t & cns){
 			using namespace ufo;
 
@@ -482,10 +469,10 @@ namespace app
 			// 		}
 			// 	});
 
-			cns.mk_blank(
-				"gmb",
-				"",
-				console_gmb);
+			// cns.mk_blank(
+			// 	"gmb",
+			// 	"",
+			// 	console_gmb);
 			
 				cns.mk_blank(
 				"echo",

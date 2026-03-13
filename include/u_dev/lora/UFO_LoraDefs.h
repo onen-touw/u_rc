@@ -208,13 +208,14 @@ namespace dev
         UFO_LoraSettings _conf = {};
 
     public:
-        lorall_t(ufo::drv::UFO_Uart *port) : _port(port)
+        lorall_t(ufo::drv::UFO_Uart *port)
         {
             if (!port)
             {
                 ufo::Trace_t::log("!port error\n");
                 return;
             }
+            _port = port;
             ufo::Trace_t::log("lora constructor\n");
         }
         ~lorall_t() {}
@@ -239,7 +240,7 @@ namespace dev
         }
 
         void setup()
-        {
+        {   
             ufo::Trace_t::log("lora:: setup\n");
 
             ufo::utl::gpio_config(UFO_LORA_AUX_PIN, gpio_mode_t::GPIO_MODE_INPUT);
@@ -301,7 +302,7 @@ namespace dev
 
         void wait_lora_done()
         {
-            api_waitAUX(500);
+            api_waitAUX(50);
         }
 
     private:
@@ -327,7 +328,7 @@ namespace dev
                 break;
             }
             ufo::utl::sleep_for(40);
-            api_waitAUX(200);
+            api_waitAUX(500);
         }
 
         void api_writeCMD(char *cmd)
@@ -364,7 +365,7 @@ namespace dev
             {
                 if ((ufo::utl::get_time_millis() - t) > ttime)
                 {
-                    ufo::Trace_t::log("Timeout error!");
+                    // ufo::Trace_t::log("Timeout error!");
                     return ESP_FAIL;
                 }
                 ufo::utl::sleep_for(1);

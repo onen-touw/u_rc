@@ -28,6 +28,4 @@ namespace rc_binds
         }
         xQueueSend(apd._queue._q, &cmd, 30);
     }
-    
-
 } // namespace binds

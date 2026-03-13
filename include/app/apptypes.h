@@ -175,5 +175,14 @@ namespace app
             ufo::mutex_t _lock;
         };
 
+
+        enum class display_qcmd_t : uint8_t {
+            none,
+            idle,
+            
+            main,           // page-0
+            flight,         // page in flight mode (after arm)
+            settings,       // page when Man configures divice
+        };
     }
 } // namespace app
