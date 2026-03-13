@@ -8,7 +8,7 @@
 #include "u_sys/mutex.h"
 #include "u_sys/cns.h"
 
-void console_gmb(ufo::cns::console_t::block_t block)
+void console_gmb(ufo::cns::console_t::block_t& block)
 {
     using namespace ufo;
     vector_t<string_t> &arg_list = block->get_buf();

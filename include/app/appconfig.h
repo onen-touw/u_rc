@@ -59,9 +59,9 @@ namespace app
         static constexpr int16_t gimb_roll_invert = -1; 
         static constexpr int16_t gimb_yaw_invert = 1; 
 
-        static constexpr gpio_num_t pin_display _dc = gpio_num_t::GPIO_NUM_26;
-        static constexpr gpio_num_t pin_display _rst = gpio_num_t::GPIO_NUM_27;
-        static constexpr gpio_num_t pin_display _cs = gpio_num_t::GPIO_NUM_12;
+        static constexpr gpio_num_t pin_display_dc = gpio_num_t::GPIO_NUM_26;
+        static constexpr gpio_num_t pin_display_rst = gpio_num_t::GPIO_NUM_27;
+        static constexpr gpio_num_t pin_display_cs = gpio_num_t::GPIO_NUM_12;
 
     };
 

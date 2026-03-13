@@ -122,7 +122,7 @@ namespace app
 
 			nettt_t nettt;
 			nettt_t::desc_t sock = 0;
-			nettt_t::desc_t lrr = 0;
+			// nettt_t::desc_t lrr = 0;
 			nettt_t::msg_block_t sock_msg = nettt.mk(
 				sock,	
 				std::make_unique<nettt_t::sock_t>(
